@@ -62,11 +62,6 @@ sudo apt install -y \
     pkg-config \
     libhdf5-dev \
     libhdf5-serial-dev \
-    libhdf5-103 \
-    libqtgui4 \
-    libqtwebkit4 \
-    libqt4-test \
-    python3-pyqt5 \
     libgtk-3-dev \
     libavcodec-dev \
     libavformat-dev \
@@ -74,34 +69,11 @@ sudo apt install -y \
     libv4l-dev \
     libxvidcore-dev \
     libx264-dev \
-    libjpeg-dev \
-    libpng-dev \
     libtiff-dev \
-    libatlas-base-dev \
-    gfortran \
     libgstreamer1.0-dev \
     libgstreamer-plugins-base1.0-dev \
     libgtk2.0-dev \
-    libtiff5-dev \
-    libjasper-dev \
-    libdc1394-22-dev \
-    libavcodec-dev \
-    libavformat-dev \
-    libswscale-dev \
-    libv4l-dev \
-    libxvidcore-dev \
-    libx264-dev \
-    libjpeg-dev \
-    libpng-dev \
-    libtiff-dev \
-    libatlas-base-dev \
-    gfortran \
-    libgstreamer1.0-dev \
-    libgstreamer-plugins-base1.0-dev \
-    libgtk2.0-dev \
-    libtiff5-dev \
-    libjasper-dev \
-    libdc1394-22-dev
+    libtiff5-dev
 
 check_error "Échec de l'installation des dépendances système"
 
