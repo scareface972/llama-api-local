@@ -16,6 +16,7 @@ Une API locale complète utilisant llama.cpp, optimisée spécifiquement pour vo
 - **Streaming temps réel** : Réponses en temps réel
 - **Export de conversations** : Sauvegarde au format JSON
 - **Monitoring matériel** : Surveillance CPU, RAM, GPU en temps réel
+- **Accès réseau local** : Accessible depuis tous les appareils du réseau
 
 ### 🔧 API Complète
 - **REST API** : Compatible OpenAI
@@ -42,7 +43,7 @@ Une API locale complète utilisant llama.cpp, optimisée spécifiquement pour vo
 ```bash
 # Cloner le projet
 git clone https://github.com/scareface972/llama-api-local.git
-cd llma-api-local
+cd llma-api
 
 # Installation automatique (Ubuntu)
 chmod +x install.sh
@@ -68,13 +69,55 @@ chmod +x start_server.sh
 - **Documentation API** : http://localhost:8000/docs
 - **Health Check** : http://localhost:8000/health
 
+## 🌐 Accès Réseau Local
+
+### Configuration Automatique
+L'API est configurée pour être accessible sur le réseau local avec `host: "0.0.0.0"`.
+
+### Vérification de l'Accès Réseau
+```bash
+# Afficher les informations réseau
+chmod +x network-info.sh
+./network-info.sh
+```
+
+### Accès depuis d'Autres Appareils
+1. **Connectez-vous au même réseau WiFi/LAN**
+2. **Ouvrez un navigateur**
+3. **Tapez l'URL** : `http://[ADRESSE_IP_SERVEUR]:8000`
+
+### Exemples d'URLs
+- **Interface Web** : `http://192.168.1.100:8000`
+- **API REST** : `http://192.168.1.100:8000/v1/chat/completions`
+- **Documentation** : `http://192.168.1.100:8000/docs`
+- **Health Check** : `http://192.168.1.100:8000/health`
+
+### Configuration du Firewall
+```bash
+# Autoriser le port 8000
+sudo ufw allow 8000/tcp
+
+# Vérifier le statut
+sudo ufw status
+```
+
+### Sécurité Réseau
+⚠️ **IMPORTANT** : L'API est accessible sur le réseau local
+- Assurez-vous que votre réseau est sécurisé
+- Changez le port si nécessaire dans config.py
+- Configurez un firewall approprié
+- Utilisez HTTPS en production
+
 ## 📁 Structure du Projet
 
 ```
 llma-api/
 ├── 📄 install.sh              # Script d'installation automatique
+├── 📄 uninstall.sh            # Script de désinstallation
 ├── 📄 download_model.sh       # Téléchargement du modèle
 ├── 📄 start_server.sh         # Démarrage du serveur
+├── 📄 daemon-control.sh       # Contrôle du service systemd
+├── 📄 network-info.sh         # Informations réseau ✨ NOUVEAU
 ├── 📄 requirements.txt        # Dépendances Python
 ├── 📄 config.py              # Configuration optimisée
 ├── 📄 llama_api.py           # API FastAPI principale
@@ -111,7 +154,7 @@ HARDWARE_CONFIG = {
 ## 🌐 Utilisation de l'API
 
 ### Interface Web
-1. Ouvrez http://localhost:8000
+1. Ouvrez http://localhost:8000 (ou l'IP du serveur)
 2. Tapez votre message dans la zone de texte
 3. Utilisez Ctrl+Enter pour envoyer rapidement
 4. Ajustez les paramètres dans la sidebar
@@ -198,6 +241,18 @@ free -h
 sudo lsof -ti:8000 | xargs kill -9
 ```
 
+#### Problèmes d'accès réseau
+```bash
+# Vérifiez les informations réseau
+./network-info.sh
+
+# Ouvrez le port firewall
+sudo ufw allow 8000/tcp
+
+# Vérifiez le statut du service
+sudo systemctl status llama-api
+```
+
 ### Logs et Debug
 ```bash
 # Consultez les logs
@@ -206,6 +261,9 @@ tail -f logs/api.log
 # Mode debug
 export LOG_LEVEL=DEBUG
 ./start_server.sh
+
+# Logs du service systemd
+sudo journalctl -u llama-api -f
 ```
 
 ## 📊 Performances
@@ -278,7 +336,8 @@ Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
 Pour toute question ou problème :
 1. Consultez la section dépannage
 2. Vérifiez les logs dans `logs/api.log`
-3. Ouvrez une issue sur GitHub
+3. Utilisez `./network-info.sh` pour les problèmes réseau
+4. Ouvrez une issue sur GitHub
 
 ---
 
