@@ -1,0 +1,39 @@
+[Unit]
+Description=Llama.cpp API Service
+Documentation=https://github.com/scareface972/llama-api-local
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/llama-api-local
+Environment=PATH=/home/ubuntu/llama-api-local/venv/bin
+ExecStart=/home/ubuntu/llama-api-local/venv/bin/python /home/ubuntu/llama-api-local/llama_api.py
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=llama-api
+
+# Configuration de sécurité
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/ubuntu/llama-api-local/logs /home/ubuntu/llama-api-local/models
+
+# Limites de ressources
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryMax=8G
+CPUQuota=400%
+
+# Variables d'environnement
+Environment=PYTHONPATH=/home/ubuntu/llama-api-local
+Environment=LLAMA_CPP_LIB=/home/ubuntu/llama-api-local/llama.cpp/libllama.so
+
+[Install]
+WantedBy=multi-user.target 

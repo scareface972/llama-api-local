@@ -125,10 +125,76 @@ mkdir -p config
 chmod +x start_server.sh
 chmod +x download_model.sh
 
+# Configuration du daemon systemd
+echo "🔧 Configuration du daemon systemd..."
+echo "📋 Installation du service systemd..."
+
+# Détection de l'utilisateur actuel
+CURRENT_USER=$(whoami)
+CURRENT_GROUP=$(id -gn)
+PROJECT_PATH=$(pwd)
+
+# Mise à jour du fichier service avec les bonnes informations
+sed -i "s|User=ubuntu|User=$CURRENT_USER|g" llama-api.service
+sed -i "s|Group=ubuntu|Group=$CURRENT_GROUP|g" llama-api.service
+sed -i "s|/home/ubuntu/llama-api-local|$PROJECT_PATH|g" llama-api.service
+
+# Copie du fichier service vers systemd
+sudo cp llama-api.service /etc/systemd/system/
+
+# Rechargement de systemd
+sudo systemctl daemon-reload
+
+# Activation du service
+sudo systemctl enable llama-api.service
+
+echo "✅ Service systemd configuré et activé"
+echo "📋 Commandes de gestion du service :"
+echo "   • Démarrage : sudo systemctl start llama-api"
+echo "   • Arrêt : sudo systemctl stop llama-api"
+echo "   • Redémarrage : sudo systemctl restart llama-api"
+echo "   • Statut : sudo systemctl status llama-api"
+echo "   • Logs : sudo journalctl -u llama-api -f"
+
+# Configuration du firewall (optionnel)
+echo "🔥 Configuration du firewall..."
+if command -v ufw &> /dev/null; then
+    sudo ufw allow 8000/tcp
+    echo "✅ Port 8000 ouvert dans le firewall"
+else
+    echo "⚠️  UFW non installé, configurez manuellement le port 8000"
+fi
+
+# Configuration de la surveillance système
+echo "📊 Configuration de la surveillance système..."
+sudo apt install -y htop iotop nvtop
+
+# Création d'un script de monitoring
+cat > monitor.sh << 'EOF'
+#!/bin/bash
+echo "=== Monitoring Llama API ==="
+echo "CPU Usage:"
+top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1
+echo "Memory Usage:"
+free -h | grep Mem | awk '{print $3"/"$2}'
+echo "GPU Usage:"
+if command -v nvidia-smi &> /dev/null; then
+    nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits
+else
+    echo "NVIDIA GPU non détecté"
+fi
+echo "Service Status:"
+sudo systemctl is-active llama-api
+EOF
+
+chmod +x monitor.sh
+
 echo "✅ Installation terminée !"
 echo "=================================================="
 echo "📋 Prochaines étapes :"
 echo "1. Exécutez : ./download_model.sh"
-echo "2. Exécutez : ./start_server.sh"
-echo "3. Ouvrez votre navigateur sur : http://localhost:8000"
+echo "2. Démarrez le service : sudo systemctl start llama-api"
+echo "3. Vérifiez le statut : sudo systemctl status llama-api"
+echo "4. Ouvrez votre navigateur sur : http://localhost:8000"
+echo "5. Surveillez les performances : ./monitor.sh"
 echo "==================================================" 
