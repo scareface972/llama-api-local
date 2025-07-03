@@ -41,7 +41,7 @@ Une API locale complète utilisant llama.cpp, optimisée spécifiquement pour vo
 ### 1. Clonage et Installation
 ```bash
 # Cloner le projet
-git clone <votre-repo>
+git clone https://github.com/scareface972/llama-api-local.git
 cd llma-api
 
 # Installation automatique (Ubuntu)
