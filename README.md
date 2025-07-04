@@ -246,3 +246,109 @@ Maintenant que les options CMake sont corrigées, vous pouvez :
 - ✅ **Diagnostic** - Script pour vérifier les options disponibles
 
 Voulez-vous maintenant relancer l'installation avec les bonnes options CMake ?
+
+# API Llama.cpp Local
+
+API Python locale utilisant llama.cpp optimisée pour un serveur Ubuntu dédié avec processeur i5, 8GB RAM et carte Nvidia GTX 950M 4GB VRAM.
+
+## 🚀 Installation
+
+### Installation complète
+```bash
+./install_clean.sh
+```
+
+### Téléchargement du modèle
+```bash
+./download_model.sh
+```
+
+### Démarrage du serveur
+```bash
+./start_server.sh
+```
+
+## 🔨 Compilation de llama.cpp
+
+Si vous rencontrez des problèmes de compilation, utilisez l'une de ces méthodes :
+
+### 1. Compilation par défaut (recommandée)
+```bash
+./compile_default.sh
+```
+
+### 2. Compilation simple
+```bash
+./compile_simple.sh
+```
+
+### 3. Compilation rapide
+```bash
+./compile_llama.sh
+```
+
+### 4. Vérification des options CMake
+```bash
+./check_cmake_options.sh
+```
+
+## 📋 Scripts disponibles
+
+- `install_clean.sh` - Installation complète et propre
+- `download_model.sh` - Téléchargement interactif des modèles
+- `start_server.sh` - Démarrage du serveur avec vérifications
+- `compile_default.sh` - Compilation avec configuration par défaut
+- `compile_simple.sh` - Compilation simple
+- `compile_llama.sh` - Compilation rapide
+- `check_cmake_options.sh` - Vérification des options CMake
+- `uninstall.sh` - Désinstallation complète
+- `network-info.sh` - Informations réseau
+
+## 🌐 Accès
+
+- **Interface Web** : http://localhost:8000
+- **Documentation API** : http://localhost:8000/docs
+- **Health Check** : http://localhost:8000/health
+
+## 🔧 Gestion du service
+
+```bash
+# Démarrer le service
+sudo systemctl start llama-api
+
+# Arrêter le service
+sudo systemctl stop llama-api
+
+# Redémarrer le service
+sudo systemctl restart llama-api
+
+# Vérifier le statut
+sudo systemctl status llama-api
+
+# Voir les logs
+sudo journalctl -u llama-api -f
+```
+
+## 📝 Notes importantes
+
+- **Configuration CMake** : Utilise la configuration par défaut sans options spécifiques pour éviter les avertissements
+- **Environnement virtuel** : Créé automatiquement dans le dossier `venv/`
+- **Modèles** : Téléchargés dans le dossier `models/`
+- **Logs** : Stockés dans le dossier `logs/`
+
+## 🛠️ Dépannage
+
+### Problèmes de compilation
+1. Utilisez `./compile_default.sh` pour une compilation sans options
+2. Vérifiez que CMake est installé : `sudo apt install cmake`
+3. Nettoyez et recommencez : `rm -rf llama.cpp/build && ./compile_default.sh`
+
+### Problèmes de dépendances
+1. Réinstallez l'environnement virtuel : `rm -rf venv && python3 -m venv venv`
+2. Activez l'environnement : `source venv/bin/activate`
+3. Installez les dépendances : `python -m pip install -r requirements.txt`
+
+### Problèmes de service
+1. Vérifiez les logs : `sudo journalctl -u llama-api -f`
+2. Redémarrez le service : `sudo systemctl restart llama-api`
+3. Vérifiez les permissions : `sudo chown -R $USER:$USER .`

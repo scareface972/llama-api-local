@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "🔨 Compilation simple de llama.cpp"
-echo "================================="
+echo "🔨 Compilation par défaut de llama.cpp"
+echo "====================================="
 
 # Couleurs pour l'affichage
 RED='\033[0;31m'
@@ -50,8 +50,8 @@ print_status "Création du répertoire build..."
 mkdir -p build
 cd build
 
-# Configuration CMake simple (sans avertissements)
-print_status "Configuration CMake simple..."
+# Configuration CMake par défaut (sans options)
+print_status "Configuration CMake par défaut..."
 cmake ..
 
 if [ $? -ne 0 ]; then

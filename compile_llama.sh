@@ -52,16 +52,11 @@ cd build
 
 # Configuration CMake avec optimisations
 print_status "Configuration CMake avec optimisations..."
-cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON -DGGML_NATIVE=ON -DLLAMA_BUILD_SERVER=ON -DLLAMA_METAL=OFF -DLLAMA_CUBLAS=OFF
+cmake ..
 
 if [ $? -ne 0 ]; then
     print_error "Échec de la configuration CMake"
-    print_status "Tentative de configuration minimale..."
-    cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON
-    if [ $? -ne 0 ]; then
-        print_error "Échec de la configuration CMake minimale"
-        exit 1
-    fi
+    exit 1
 fi
 
 # Compilation
