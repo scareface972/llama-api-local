@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import time
+import uuid
 from typing import Dict, List, Optional, Any, AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -20,6 +21,7 @@ import psutil
 sys.path.append('./llama.cpp')
 
 from config import Config
+from logs import performance_logger
 
 # Configuration du logging
 logging.basicConfig(
@@ -39,7 +41,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage] = Field(..., description="Historique des messages")
-    model: str = Field(default="llama-2-7b-chat", description="Modèle à utiliser")
+    model: str = Field(default="mistral-7b-instruct", description="Modèle à utiliser")
     temperature: float = Field(default=0.8, ge=0.0, le=2.0, description="Température de génération")
     max_tokens: int = Field(default=2048, ge=1, le=4096, description="Nombre maximum de tokens")
     stream: bool = Field(default=True, description="Activer le streaming")
@@ -58,6 +60,7 @@ class HealthResponse(BaseModel):
     model_loaded: bool
     hardware_info: Dict[str, Any]
     memory_usage: Dict[str, Any]
+    performance_stats: Dict[str, Any]
 
 # Variables globales
 llama_model = None
@@ -71,13 +74,25 @@ async def lifespan(app: FastAPI):
     # Optimisation de la configuration
     Config.optimize_for_hardware()
     
+    # Log de la configuration
+    performance_logger.log_configuration(Config.get_llama_args())
+    
     # Chargement du modèle
     try:
         logger.info("🚀 Chargement du modèle llama.cpp...")
+        start_time = time.time()
         llama_model = load_llama_model()
-        logger.info("✅ Modèle chargé avec succès")
+        load_time = time.time() - start_time
+        
+        if llama_model:
+            performance_logger.log_model_load(Config.LLAMA_CONFIG["model_path"], load_time)
+            logger.info("✅ Modèle chargé avec succès")
+        else:
+            logger.error("❌ Échec du chargement du modèle")
+            
     except Exception as e:
         logger.error(f"❌ Erreur lors du chargement du modèle: {e}")
+        performance_logger.log_error("system", e, "model_loading")
         llama_model = None
     
     yield
@@ -167,7 +182,7 @@ def load_llama_model():
 # Création de l'application FastAPI
 app = FastAPI(
     title="Llama.cpp API",
-    description="API locale pour llama.cpp optimisée pour i5 + GTX 950M",
+    description="API locale pour llama.cpp optimisée pour Mistral",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -205,6 +220,9 @@ async def root(request):
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Vérification de l'état de l'API"""
+    # Récupération des stats de performance
+    performance_stats = performance_logger.get_performance_stats()
+    
     return HealthResponse(
         status="healthy" if llama_model else "unhealthy",
         model_loaded=llama_model is not None,
@@ -213,7 +231,8 @@ async def health_check():
             "ram_used_gb": round(psutil.virtual_memory().used / (1024**3), 2),
             "ram_total_gb": round(psutil.virtual_memory().total / (1024**3), 2),
             "ram_percent": psutil.virtual_memory().percent
-        }
+        },
+        performance_stats=performance_stats
     )
 
 @app.post("/v1/chat/completions", response_model=ChatResponse)
@@ -221,6 +240,15 @@ async def chat_completions(request: ChatRequest):
     """Endpoint principal pour les conversations"""
     if not llama_model:
         raise HTTPException(status_code=503, detail="Modèle non chargé")
+    
+    # Génération d'un ID de requête unique
+    request_id = str(uuid.uuid4())
+    
+    # Log du début de la requête
+    user_message = request.messages[-1].content if request.messages else ""
+    performance_logger.log_request_start(request_id, user_message, request.model)
+    
+    start_time = time.time()
     
     try:
         # Préparation des messages
@@ -241,6 +269,13 @@ async def chat_completions(request: ChatRequest):
             stop=Config.LLAMA_CONFIG["stop"]
         )
         
+        # Calcul du temps de réponse et des tokens
+        response_time = time.time() - start_time
+        tokens_generated = response.get("usage", {}).get("completion_tokens", 0)
+        
+        # Log de la fin de la requête
+        performance_logger.log_request_end(request_id, response_time, tokens_generated)
+        
         return ChatResponse(
             id=f"chatcmpl-{int(time.time())}",
             created=int(time.time()),
@@ -250,6 +285,8 @@ async def chat_completions(request: ChatRequest):
         )
         
     except Exception as e:
+        response_time = time.time() - start_time
+        performance_logger.log_error(request_id, e, "chat_completion")
         logger.error(f"Erreur lors de la génération: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -259,7 +296,19 @@ async def chat_completions_stream(request: ChatRequest):
     if not llama_model:
         raise HTTPException(status_code=503, detail="Modèle non chargé")
     
+    # Génération d'un ID de requête unique
+    request_id = str(uuid.uuid4())
+    
+    # Log du début de la requête
+    user_message = request.messages[-1].content if request.messages else ""
+    performance_logger.log_request_start(request_id, user_message, request.model)
+    
+    start_time = time.time()
+    tokens_generated = 0
+    
     async def generate_stream():
+        nonlocal tokens_generated
+        
         try:
             messages = []
             for msg in request.messages:
@@ -277,11 +326,21 @@ async def chat_completions_stream(request: ChatRequest):
             )
             
             for chunk in response:
+                # Comptage des tokens
+                if chunk.get("choices") and chunk["choices"][0].get("delta", {}).get("content"):
+                    tokens_generated += 1
+                
                 yield f"data: {json.dumps(chunk)}\n\n"
             
             yield "data: [DONE]\n\n"
             
+            # Log de la fin de la requête
+            response_time = time.time() - start_time
+            performance_logger.log_request_end(request_id, response_time, tokens_generated)
+            
         except Exception as e:
+            response_time = time.time() - start_time
+            performance_logger.log_error(request_id, e, "streaming")
             logger.error(f"Erreur lors du streaming: {e}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
     
@@ -305,9 +364,19 @@ async def websocket_chat(websocket: WebSocket):
             data = await websocket.receive_text()
             request_data = json.loads(data)
             
+            # Génération d'un ID de requête unique
+            request_id = str(uuid.uuid4())
+            
             messages = request_data.get("messages", [])
             temperature = request_data.get("temperature", 0.8)
             max_tokens = request_data.get("max_tokens", 2048)
+            
+            # Log du début de la requête
+            user_message = messages[-1]["content"] if messages else ""
+            performance_logger.log_request_start(request_id, user_message, "mistral-7b-instruct")
+            
+            start_time = time.time()
+            tokens_generated = 0
             
             # Génération de la réponse
             response = llama_model.create_chat_completion(
@@ -320,7 +389,13 @@ async def websocket_chat(websocket: WebSocket):
             
             # Envoi des chunks via WebSocket
             for chunk in response:
+                if chunk.get("choices") and chunk["choices"][0].get("delta", {}).get("content"):
+                    tokens_generated += 1
                 await websocket.send_text(json.dumps(chunk))
+            
+            # Log de la fin de la requête
+            response_time = time.time() - start_time
+            performance_logger.log_request_end(request_id, response_time, tokens_generated)
             
             await websocket.send_text(json.dumps({"done": True}))
             
@@ -328,6 +403,7 @@ async def websocket_chat(websocket: WebSocket):
         logger.info("WebSocket déconnecté")
     except Exception as e:
         logger.error(f"Erreur WebSocket: {e}")
+        performance_logger.log_error("websocket", e, "websocket_chat")
         await websocket.send_text(json.dumps({"error": str(e)}))
 
 @app.get("/models")
@@ -361,8 +437,14 @@ async def debug_hardware():
             "ram_total_gb": round(psutil.virtual_memory().total / (1024**3), 2),
             "ram_percent": psutil.virtual_memory().percent
         },
-        "model_loaded": llama_model is not None
+        "model_loaded": llama_model is not None,
+        "performance_stats": performance_logger.get_performance_stats()
     }
+
+@app.get("/logs/performance")
+async def get_performance_logs():
+    """Récupère les logs de performance"""
+    return performance_logger.get_performance_stats()
 
 if __name__ == "__main__":
     config = Config.get_api_config()
