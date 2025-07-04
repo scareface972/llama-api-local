@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "🚀 Installation de l'API Llama.cpp optimisée pour Ubuntu"
-echo "=================================================="
+echo "🚀 Installation complète de l'API Llama.cpp optimisée pour Ubuntu"
+echo "================================================================"
 
 # Couleurs pour l'affichage
 RED='\033[0;31m'
@@ -31,13 +31,29 @@ check_error() {
     fi
 }
 
-# Mise à jour du système
-print_status "Mise à jour du système..."
+# Vérification de l'utilisateur
+if [ "$EUID" -eq 0 ]; then
+    print_error "Ne pas exécuter ce script en tant que root"
+    print_status "Utilisez un utilisateur normal avec sudo"
+    exit 1
+fi
+
+print_status "Utilisateur: $(whoami)"
+print_status "Répertoire: $(pwd)"
+
+# ============================================================================
+# ÉTAPE 1: MISE À JOUR DU SYSTÈME
+# ============================================================================
+print_status "ÉTAPE 1: Mise à jour du système..."
 sudo apt update && sudo apt upgrade -y
 check_error "Échec de la mise à jour du système"
 
-# Installation des dépendances système
-print_status "Installation des dépendances système..."
+# ============================================================================
+# ÉTAPE 2: INSTALLATION DES DÉPENDANCES SYSTÈME
+# ============================================================================
+print_status "ÉTAPE 2: Installation des dépendances système..."
+
+# Dépendances système essentielles (sans packages obsolètes)
 sudo apt install -y \
     build-essential \
     cmake \
@@ -47,8 +63,6 @@ sudo apt install -y \
     python3 \
     python3-pip \
     python3-venv \
-    nvidia-cuda-toolkit \
-    nvidia-driver-535 \
     libopenblas-dev \
     liblapack-dev \
     libatlas-base-dev \
@@ -77,31 +91,47 @@ sudo apt install -y \
 
 check_error "Échec de l'installation des dépendances système"
 
-# Installation de CUDA et cuDNN
-print_status "Configuration CUDA pour GPU NVIDIA..."
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
-check_error "Échec du téléchargement de CUDA keyring"
+# ============================================================================
+# ÉTAPE 3: INSTALLATION DE CUDA (si GPU NVIDIA détecté)
+# ============================================================================
+print_status "ÉTAPE 3: Configuration CUDA..."
 
-sudo dpkg -i cuda-keyring_1.0-1_all.deb
-check_error "Échec de l'installation de CUDA keyring"
+if command -v nvidia-smi &> /dev/null; then
+    print_status "✅ GPU NVIDIA détecté, installation de CUDA..."
+    
+    # Installation de CUDA Toolkit
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
+    check_error "Échec du téléchargement de CUDA keyring"
+    
+    sudo dpkg -i cuda-keyring_1.0-1_all.deb
+    check_error "Échec de l'installation de CUDA keyring"
+    
+    sudo apt-get update
+    sudo apt-get -y install cuda-toolkit-12-0
+    check_error "Échec de l'installation de CUDA toolkit"
+    
+    # Configuration des variables d'environnement CUDA
+    echo 'export PATH=/usr/local/cuda-12.0/bin:$PATH' >> ~/.bashrc
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.0/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+    source ~/.bashrc
+    
+    print_status "✅ CUDA installé et configuré"
+else
+    print_warning "⚠️  GPU NVIDIA non détecté, installation sans CUDA"
+fi
 
-sudo apt-get update
-sudo apt-get -y install cuda-toolkit-12-0
-check_error "Échec de l'installation de CUDA toolkit"
+# ============================================================================
+# ÉTAPE 4: INSTALLATION DE LLAMA.CPP
+# ============================================================================
+print_status "ÉTAPE 4: Installation de llama.cpp..."
 
-# Configuration des variables d'environnement CUDA
-print_status "Configuration des variables d'environnement CUDA..."
-echo 'export PATH=/usr/local/cuda-12.0/bin:$PATH' >> ~/.bashrc
-echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.0/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
-source ~/.bashrc
-
-# Installation de llama.cpp
-print_status "Installation de llama.cpp..."
+# Suppression de l'ancienne installation si elle existe
 if [ -d "llama.cpp" ]; then
     print_warning "llama.cpp existe déjà, suppression..."
     rm -rf llama.cpp
 fi
 
+# Clonage de llama.cpp
 git clone https://github.com/ggerganov/llama.cpp.git
 check_error "Échec du clonage de llama.cpp"
 
@@ -110,24 +140,35 @@ cd llama.cpp
 # Compilation optimisée pour votre configuration
 print_status "Compilation optimisée pour i5 + GTX 950M..."
 make clean
-make LLAMA_CUBLAS=1 LLAMA_AVX=1 LLAMA_AVX2=1 LLAMA_F16C=1 LLAMA_FMA=1 LLAMA_BLAS=1 LLAMA_OPENBLAS=1 -j$(nproc)
+
+# Compilation avec optimisations CUDA si disponible
+if command -v nvidia-smi &> /dev/null; then
+    make LLAMA_CUBLAS=1 LLAMA_AVX=1 LLAMA_AVX2=1 LLAMA_F16C=1 LLAMA_FMA=1 LLAMA_BLAS=1 LLAMA_OPENBLAS=1 -j$(nproc)
+else
+    make LLAMA_AVX=1 LLAMA_AVX2=1 LLAMA_F16C=1 LLAMA_FMA=1 LLAMA_BLAS=1 LLAMA_OPENBLAS=1 -j$(nproc)
+fi
+
 check_error "Échec de la compilation de llama.cpp"
 
 # Retour au répertoire principal
 cd ..
 
-# Création de l'environnement virtuel Python
-print_status "Configuration de l'environnement Python..."
+# ============================================================================
+# ÉTAPE 5: CRÉATION DE L'ENVIRONNEMENT VIRTUEL PYTHON
+# ============================================================================
+print_status "ÉTAPE 5: Configuration de l'environnement Python..."
+
+# Suppression de l'ancien environnement si il existe
 if [ -d "venv" ]; then
     print_warning "Environnement virtuel existe déjà, suppression..."
     rm -rf venv
 fi
 
+# Création d'un nouvel environnement virtuel
 python3 -m venv venv
 check_error "Échec de la création de l'environnement virtuel"
 
 # Activation de l'environnement virtuel
-print_status "Activation de l'environnement virtuel..."
 source venv/bin/activate
 check_error "Échec de l'activation de l'environnement virtuel"
 
@@ -139,48 +180,102 @@ fi
 
 print_status "Environnement virtuel activé : $VIRTUAL_ENV"
 
-# Installation des dépendances Python
-print_status "Installation des dépendances Python..."
-pip install --upgrade pip
+# ============================================================================
+# ÉTAPE 6: INSTALLATION DES DÉPENDANCES PYTHON
+# ============================================================================
+print_status "ÉTAPE 6: Installation des dépendances Python..."
+
+# Mise à jour de pip
+python -m pip install --upgrade pip
 check_error "Échec de la mise à jour de pip"
 
-# Vérification de l'existence du fichier requirements.txt
-if [ ! -f "requirements.txt" ]; then
-    print_error "Fichier requirements.txt non trouvé"
-    exit 1
+# Installation des dépendances de base
+python -m pip install --upgrade setuptools wheel
+check_error "Échec de l'installation de setuptools/wheel"
+
+# Installation séquentielle des dépendances (pour éviter les conflits)
+print_status "Installation séquentielle des dépendances..."
+
+# 1. Numpy (base pour beaucoup d'autres packages)
+print_status "1. Installation de numpy..."
+python -m pip install "numpy>=1.24.0"
+check_error "Échec de l'installation de numpy"
+
+# 2. FastAPI et Uvicorn
+print_status "2. Installation de FastAPI et Uvicorn..."
+python -m pip install "fastapi>=0.104.1" "uvicorn[standard]>=0.24.0"
+check_error "Échec de l'installation de FastAPI/Uvicorn"
+
+# 3. Pydantic
+print_status "3. Installation de Pydantic..."
+python -m pip install "pydantic>=2.5.0"
+check_error "Échec de l'installation de Pydantic"
+
+# 4. Autres dépendances web
+print_status "4. Installation des dépendances web..."
+python -m pip install "python-multipart>=0.0.6" "jinja2>=3.1.2" "aiofiles>=23.2.1" "websockets>=12.0"
+check_error "Échec de l'installation des dépendances web"
+
+# 5. Psutil
+print_status "5. Installation de psutil..."
+python -m pip install "psutil>=5.9.6"
+check_error "Échec de l'installation de psutil"
+
+# 6. PyTorch (séparé car peut être long)
+print_status "6. Installation de PyTorch..."
+if command -v nvidia-smi &> /dev/null; then
+    python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+else
+    python -m pip install torch torchvision torchaudio
 fi
-
-pip install -r requirements.txt
-check_error "Échec de l'installation des dépendances Python"
-
-# Installation de PyTorch avec support CUDA
-print_status "Installation de PyTorch avec support CUDA..."
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 check_error "Échec de l'installation de PyTorch"
 
-# Installation de llama-cpp-python avec support CUDA
-print_status "Installation de llama-cpp-python avec support CUDA..."
-pip install llama-cpp-python --force-reinstall --index-url https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu118
-check_error "Échec de l'installation de llama-cpp-python"
+# 7. Transformers et dépendances
+print_status "7. Installation de Transformers..."
+python -m pip install "transformers>=4.36.0" "sentencepiece>=0.1.99" "accelerate>=0.25.0"
+check_error "Échec de l'installation de Transformers"
 
-# Création des répertoires nécessaires
-print_status "Création de la structure du projet..."
+# 8. Llama-cpp-python (avec fallback automatique)
+print_status "8. Installation de llama-cpp-python..."
+if command -v nvidia-smi &> /dev/null; then
+    # Tentative d'installation depuis le dépôt personnalisé
+    if python -m pip install llama-cpp-python --index-url https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu118 2>/dev/null; then
+        print_status "✅ llama-cpp-python installé depuis le dépôt personnalisé"
+    else
+        print_warning "Échec du dépôt personnalisé, compilation CUDA..."
+        export CMAKE_ARGS="-DLLAMA_CUBLAS=on"
+        export FORCE_CMAKE=1
+        python -m pip install llama-cpp-python --no-cache-dir
+        check_error "Échec de l'installation de llama-cpp-python avec CUDA"
+    fi
+else
+    # Installation sans CUDA
+    python -m pip install llama-cpp-python --no-cache-dir
+    check_error "Échec de l'installation de llama-cpp-python"
+fi
+
+# ============================================================================
+# ÉTAPE 7: CRÉATION DE LA STRUCTURE DU PROJET
+# ============================================================================
+print_status "ÉTAPE 7: Création de la structure du projet..."
 mkdir -p models
 mkdir -p logs
 mkdir -p static
 mkdir -p templates
 mkdir -p config
 
-# Configuration des permissions
-print_status "Configuration des permissions..."
-chmod +x start_server.sh
-chmod +x download_model.sh
-chmod +x daemon-control.sh
-chmod +x network-info.sh
-chmod +x uninstall.sh
+# ============================================================================
+# ÉTAPE 8: CONFIGURATION DES PERMISSIONS
+# ============================================================================
+print_status "ÉTAPE 8: Configuration des permissions..."
+chmod +x *.sh
+chmod +x llama_api.py
+chmod +x config.py
 
-# Configuration du daemon systemd
-print_status "Configuration du daemon systemd..."
+# ============================================================================
+# ÉTAPE 9: CONFIGURATION DU DAEMON SYSTEMD
+# ============================================================================
+print_status "ÉTAPE 9: Configuration du daemon systemd..."
 
 # Vérification de l'existence du fichier service
 if [ ! -f "llama-api.service" ]; then
@@ -188,7 +283,7 @@ if [ ! -f "llama-api.service" ]; then
     exit 1
 fi
 
-# Détection de l'utilisateur actuel
+# Détection de l'utilisateur et du chemin
 CURRENT_USER=$(whoami)
 CURRENT_GROUP=$(id -gn)
 PROJECT_PATH=$(pwd)
@@ -214,49 +309,29 @@ check_error "Échec du rechargement de systemd"
 sudo systemctl enable llama-api.service
 check_error "Échec de l'activation du service"
 
-print_status "Service systemd configuré et activé"
-echo "📋 Commandes de gestion du service :"
-echo "   • Démarrage : sudo systemctl start llama-api"
-echo "   • Arrêt : sudo systemctl stop llama-api"
-echo "   • Redémarrage : sudo systemctl restart llama-api"
-echo "   • Statut : sudo systemctl status llama-api"
-echo "   • Logs : sudo journalctl -u llama-api -f"
+print_status "✅ Service systemd configuré et activé"
 
-# Configuration du firewall (optionnel)
-print_status "Configuration du firewall..."
+# ============================================================================
+# ÉTAPE 10: CONFIGURATION DU FIREWALL
+# ============================================================================
+print_status "ÉTAPE 10: Configuration du firewall..."
 if command -v ufw &> /dev/null; then
     sudo ufw allow 8000/tcp
-    print_status "Port 8000 ouvert dans le firewall"
+    print_status "✅ Port 8000 ouvert dans le firewall"
 else
     print_warning "UFW non installé, configurez manuellement le port 8000"
 fi
 
-# Configuration de la surveillance système
-print_status "Configuration de la surveillance système..."
+# ============================================================================
+# ÉTAPE 11: INSTALLATION DES OUTILS DE SURVEILLANCE
+# ============================================================================
+print_status "ÉTAPE 11: Installation des outils de surveillance..."
 sudo apt install -y htop iotop nvtop
 
-# Création d'un script de monitoring
-cat > monitor.sh << 'EOF'
-#!/bin/bash
-echo "=== Monitoring Llama API ==="
-echo "CPU Usage:"
-top -bn1 | grep "Cpu(s)" | awk '{print $2}' | cut -d'%' -f1
-echo "Memory Usage:"
-free -h | grep Mem | awk '{print $3"/"$2}'
-echo "GPU Usage:"
-if command -v nvidia-smi &> /dev/null; then
-    nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits
-else
-    echo "NVIDIA GPU non détecté"
-fi
-echo "Service Status:"
-sudo systemctl is-active llama-api
-EOF
-
-chmod +x monitor.sh
-
-# Vérification finale
-print_status "Vérification de l'installation..."
+# ============================================================================
+# ÉTAPE 12: VÉRIFICATION FINALE
+# ============================================================================
+print_status "ÉTAPE 12: Vérification finale..."
 
 # Vérification de l'environnement virtuel
 if [ -d "venv" ] && [ -f "venv/bin/activate" ]; then
@@ -276,20 +351,62 @@ fi
 
 # Vérification des dépendances Python
 source venv/bin/activate
-if python -c "import fastapi, uvicorn, llama_cpp" 2>/dev/null; then
-    print_status "✅ Dépendances Python installées"
+python -c "
+import sys
+packages = ['fastapi', 'uvicorn', 'pydantic', 'numpy', 'torch', 'transformers', 'llama_cpp']
+missing = []
+for pkg in packages:
+    try:
+        __import__(pkg)
+        print(f'✅ {pkg} installé')
+    except ImportError:
+        missing.append(pkg)
+        print(f'❌ {pkg} manquant')
+
+if missing:
+    print(f'\\n❌ Packages manquants: {missing}')
+    sys.exit(1)
+else:
+    print('\\n✅ Toutes les dépendances sont installées')
+"
+
+if [ $? -eq 0 ]; then
+    print_status "✅ Installation terminée avec succès !"
 else
-    print_error "❌ Dépendances Python manquantes"
+    print_error "❌ Certaines dépendances sont manquantes"
     exit 1
 fi
 
-print_status "✅ Installation terminée avec succès !"
-echo "=================================================="
+# ============================================================================
+# FINALISATION
+# ============================================================================
+echo ""
+echo "🎉 INSTALLATION TERMINÉE AVEC SUCCÈS !"
+echo "======================================"
+echo ""
 echo "📋 Prochaines étapes :"
-echo "1. Exécutez : ./download_model.sh"
-echo "2. Démarrez le service : sudo systemctl start llama-api"
-echo "3. Vérifiez le statut : sudo systemctl status llama-api"
-echo "4. Ouvrez votre navigateur sur : http://localhost:8000"
-echo "5. Surveillez les performances : ./monitor.sh"
-echo "6. Vérifiez l'accès réseau : ./network-info.sh"
-echo "==================================================" 
+echo "1. Télécharger le modèle : ./download_model.sh"
+echo "2. Tester le serveur : ./start_server.sh"
+echo "3. Ou démarrer le service : sudo systemctl start llama-api"
+echo "4. Vérifier le statut : sudo systemctl status llama-api"
+echo "5. Voir les logs : sudo journalctl -u llama-api -f"
+echo "6. Accès réseau : ./network-info.sh"
+echo ""
+echo "🌐 URLs d'accès :"
+echo "   • Interface Web : http://localhost:8000"
+echo "   • Documentation API : http://localhost:8000/docs"
+echo "   • Health Check : http://localhost:8000/health"
+echo ""
+echo "🔧 Commandes utiles :"
+echo "   • Démarrer : sudo systemctl start llama-api"
+echo "   • Arrêter : sudo systemctl stop llama-api"
+echo "   • Redémarrer : sudo systemctl restart llama-api"
+echo "   • Statut : sudo systemctl status llama-api"
+echo "   • Logs : sudo journalctl -u llama-api -f"
+echo ""
+echo "📊 Surveillance :"
+echo "   • Monitoring : ./monitor.sh"
+echo "   • Diagnostic : ./diagnose_env.sh"
+echo "   • Réparation : ./fix_venv.sh"
+echo ""
+echo "🎯 Votre API Llama.cpp est prête !" 
