@@ -52,7 +52,7 @@ cd build
 
 # Configuration CMake avec optimisations
 print_status "Configuration CMake avec optimisations..."
-cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON -DLLAMA_AVX=ON -DLLAMA_AVX2=ON -DLLAMA_F16C=ON -DLLAMA_FMA=ON
+cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON -DLLAMA_NATIVE=ON -DLLAMA_BUILD_SERVER=ON -DLLAMA_METAL=OFF -DLLAMA_CUBLAS=OFF
 
 if [ $? -ne 0 ]; then
     print_error "Échec de la configuration CMake"
