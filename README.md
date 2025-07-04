@@ -268,41 +268,17 @@ API Python locale utilisant llama.cpp optimisée pour un serveur Ubuntu dédié 
 ./start_server.sh
 ```
 
-## 🔨 Compilation de llama.cpp
+## 🔨 Scripts disponibles
 
-Si vous rencontrez des problèmes de compilation, utilisez l'une de ces méthodes :
-
-### 1. Compilation par défaut (recommandée)
-```bash
-./compile_default.sh
-```
-
-### 2. Compilation simple
-```bash
-./compile_simple.sh
-```
-
-### 3. Compilation rapide
-```bash
-./compile_llama.sh
-```
-
-### 4. Vérification des options CMake
-```bash
-./check_cmake_options.sh
-```
-
-## 📋 Scripts disponibles
-
-- `install_clean.sh` - Installation complète et propre
-- `download_model.sh` - Téléchargement interactif des modèles
-- `start_server.sh` - Démarrage du serveur avec vérifications
-- `compile_default.sh` - Compilation avec configuration par défaut
-- `compile_simple.sh` - Compilation simple
-- `compile_llama.sh` - Compilation rapide
-- `check_cmake_options.sh` - Vérification des options CMake
-- `uninstall.sh` - Désinstallation complète
-- `network-info.sh` - Informations réseau
+| Script | Description |
+|--------|-------------|
+| `install_clean.sh` | Installation complète et propre |
+| `uninstall.sh` | Désinstallation complète |
+| `download_model.sh` | Téléchargement interactif de modèles |
+| `start_server.sh` | Démarrage du serveur |
+| `compile.sh` | Compilation de llama.cpp |
+| `check.sh` | Vérification du binaire compilé |
+| `network.sh` | Informations réseau |
 
 ## 🌐 Accès
 
@@ -331,17 +307,18 @@ sudo journalctl -u llama-api -f
 
 ## 📝 Notes importantes
 
-- **Configuration CMake** : Utilise la configuration par défaut sans options spécifiques pour éviter les avertissements
+- **Configuration CMake** : Utilise la configuration par défaut sans options spécifiques
 - **Environnement virtuel** : Créé automatiquement dans le dossier `venv/`
 - **Modèles** : Téléchargés dans le dossier `models/`
 - **Logs** : Stockés dans le dossier `logs/`
+- **Contexte** : Configuré à 8K tokens pour une meilleure utilisation du modèle
 
 ## 🛠️ Dépannage
 
 ### Problèmes de compilation
-1. Utilisez `./compile_default.sh` pour une compilation sans options
+1. Utilisez `./compile.sh` pour compiler llama.cpp
 2. Vérifiez que CMake est installé : `sudo apt install cmake`
-3. Nettoyez et recommencez : `rm -rf llama.cpp/build && ./compile_default.sh`
+3. Vérifiez le binaire : `./check.sh`
 
 ### Problèmes de dépendances
 1. Réinstallez l'environnement virtuel : `rm -rf venv && python3 -m venv venv`
@@ -352,3 +329,25 @@ sudo journalctl -u llama-api -f
 1. Vérifiez les logs : `sudo journalctl -u llama-api -f`
 2. Redémarrez le service : `sudo systemctl restart llama-api`
 3. Vérifiez les permissions : `sudo chown -R $USER:$USER .`
+
+## 📦 Modèles Supportés
+
+Le script `download_model.sh` propose plusieurs modèles :
+
+1. **Llama-2-7B-Chat** (4.37 GB) - Recommandé pour débuter
+2. **Llama-2-13B-Chat** (7.87 GB) - Plus performant, plus lent
+3. **Llama-2-7B** (4.37 GB) - Modèle de base
+4. **CodeLlama-7B-Instruct** (4.37 GB) - Spécialisé code
+5. **Mistral-7B-Instruct** (4.37 GB) - Très performant
+6. **Téléchargement personnalisé** - URL personnalisée
+
+## 🎯 Caractéristiques
+
+- **API REST** avec FastAPI
+- **Interface web moderne** avec chat en temps réel
+- **Support multi-modèles** (Llama-2, CodeLlama, Mistral, etc.)
+- **Optimisations CPU** pour performances maximales
+- **Service systemd** pour démarrage automatique
+- **Interface réseau** accessible depuis d'autres appareils
+- **Monitoring système** intégré
+- **Contexte 8K tokens** pour conversations plus longues
