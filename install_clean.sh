@@ -173,14 +173,21 @@ check_error "Échec du clonage de llama.cpp"
 
 cd llama.cpp
 
-# Compilation optimisée pour CPU
-print_status "Compilation optimisée pour CPU..."
-make clean
-make LLAMA_AVX=1 LLAMA_AVX2=1 LLAMA_F16C=1 LLAMA_FMA=1 LLAMA_BLAS=1 LLAMA_OPENBLAS=1 -j$(nproc)
+# Compilation avec CMake (nouvelle méthode)
+print_status "Compilation avec CMake (nouvelle méthode)..."
+mkdir -p build
+cd build
+
+# Configuration CMake avec optimisations
+cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON -DLLAMA_AVX=ON -DLLAMA_AVX2=ON -DLLAMA_F16C=ON -DLLAMA_FMA=ON
+check_error "Échec de la configuration CMake"
+
+# Compilation
+make -j$(nproc)
 check_error "Échec de la compilation de llama.cpp"
 
 # Retour au répertoire principal
-cd ..
+cd ../..
 
 # ============================================================================
 # ÉTAPE 6: CRÉATION DE LA STRUCTURE DU PROJET
@@ -912,7 +919,7 @@ else
 fi
 
 # Vérification de llama.cpp
-if [ -d "llama.cpp" ] && [ -f "llama.cpp/main" ]; then
+if [ -d "llama.cpp" ] && [ -f "llama.cpp/build/main" ]; then
     print_status "✅ llama.cpp compilé"
 else
     print_error "❌ llama.cpp manquant ou non compilé"
