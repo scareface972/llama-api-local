@@ -80,7 +80,18 @@ check_error "Échec de l'installation des dépendances système"
 # Vérification de l'environnement virtuel
 print_status "Vérification de l'environnement virtuel..."
 if [ -d "venv" ]; then
-    print_status "Environnement virtuel trouvé, mise à jour des dépendances Python..."
+    print_status "Environnement virtuel trouvé, vérification de l'intégrité..."
+    
+    # Vérification de l'intégrité de l'environnement virtuel
+    if [ ! -f "venv/bin/python" ] || [ ! -f "venv/bin/pip" ]; then
+        print_warning "Environnement virtuel corrompu détecté"
+        print_status "Suppression et recréation de l'environnement virtuel..."
+        deactivate 2>/dev/null || true
+        rm -rf venv
+        python3 -m venv venv
+        check_error "Échec de la recréation de l'environnement virtuel"
+        print_status "✅ Nouvel environnement virtuel créé"
+    fi
     
     # Activation explicite de l'environnement virtuel
     source venv/bin/activate
@@ -108,6 +119,13 @@ if [ -d "venv" ]; then
         python3 -m venv venv
         source venv/bin/activate
         check_error "Échec de la recréation de l'environnement virtuel"
+    fi
+    
+    # Vérification que pip est disponible
+    if ! python -c "import pip" 2>/dev/null; then
+        print_warning "Pip non disponible, installation..."
+        python -m ensurepip --upgrade
+        check_error "Échec de l'installation de pip"
     fi
     
     # Mise à jour de pip dans l'environnement virtuel
