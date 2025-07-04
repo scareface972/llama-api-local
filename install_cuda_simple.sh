@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "🔧 Réparation de l'installation CUDA"
-echo "==================================="
+echo "🔧 Installation CUDA simple et compatible"
+echo "========================================"
 
 # Couleurs pour l'affichage
 RED='\033[0;31m'
@@ -59,8 +59,8 @@ sudo apt autoclean
 sudo apt --fix-broken install -y
 check_error "Échec de la réparation des packages"
 
-# Installation des dépendances manquantes
-print_status "ÉTAPE 2: Installation des dépendances manquantes..."
+# Installation des dépendances de base
+print_status "ÉTAPE 2: Installation des dépendances de base..."
 sudo apt install -y \
     build-essential \
     gcc \
@@ -68,24 +68,24 @@ sudo apt install -y \
     make \
     cmake \
     pkg-config \
-    libncurses-dev
+    wget
 check_error "Échec de l'installation des dépendances"
 
-# Suppression des installations CUDA cassées
-print_status "ÉTAPE 3: Suppression des installations CUDA cassées..."
-sudo apt remove --purge cuda* nvidia-cuda* -y
+# Suppression des installations CUDA existantes
+print_status "ÉTAPE 3: Suppression des installations CUDA existantes..."
+sudo apt remove --purge cuda* nvidia-cuda* -y 2>/dev/null || true
 sudo apt autoremove -y
 sudo apt autoclean
 
 # Nettoyage des fichiers CUDA
 print_status "ÉTAPE 4: Nettoyage des fichiers CUDA..."
-sudo rm -rf /usr/local/cuda*
-sudo rm -rf /usr/local/nvidia*
-sudo rm -f /etc/apt/sources.list.d/cuda*
-sudo rm -f /etc/apt/sources.list.d/nvidia*
+sudo rm -rf /usr/local/cuda* 2>/dev/null || true
+sudo rm -rf /usr/local/nvidia* 2>/dev/null || true
+sudo rm -f /etc/apt/sources.list.d/cuda* 2>/dev/null || true
+sudo rm -f /etc/apt/sources.list.d/nvidia* 2>/dev/null || true
 
-# Réinstallation propre de CUDA
-print_status "ÉTAPE 5: Réinstallation propre de CUDA..."
+# Installation simple de CUDA
+print_status "ÉTAPE 5: Installation simple de CUDA..."
 
 # Téléchargement du keyring
 print_status "Téléchargement de CUDA keyring..."
@@ -102,17 +102,14 @@ print_status "Mise à jour des dépôts..."
 sudo apt-get update
 check_error "Échec de la mise à jour des dépôts"
 
-# Installation minimale de CUDA (sans les outils de développement)
+# Installation minimale de CUDA
 print_status "Installation minimale de CUDA..."
-sudo apt-get install -y \
-    cuda-runtime-12-0 \
-    cuda-libraries-12-0 \
-    --no-install-recommends
+sudo apt-get install -y cuda-runtime-12-0 --no-install-recommends
 
 if [ $? -ne 0 ]; then
-    print_warning "Installation de base échouée, tentative d'installation minimale..."
-    sudo apt-get install -y cuda-compiler-12-0 cuda-libraries-12-0
-    check_error "Échec de l'installation de base de CUDA"
+    print_warning "Installation de runtime échouée, tentative d'installation des bibliothèques..."
+    sudo apt-get install -y cuda-libraries-12-0 --no-install-recommends
+    check_error "Échec de l'installation des bibliothèques CUDA"
 fi
 
 # Configuration des variables d'environnement
@@ -156,20 +153,21 @@ print_status "ÉTAPE 7: Vérification de l'installation..."
 if command -v nvcc &> /dev/null; then
     print_status "✅ nvcc trouvé : $(nvcc --version | head -1)"
 else
-    print_warning "⚠️  nvcc non trouvé"
+    print_warning "⚠️  nvcc non trouvé (normal pour une installation minimale)"
 fi
 
-# Test de CUDA
+# Test de CUDA avec PyTorch
+print_status "Test de CUDA avec PyTorch..."
 if python3 -c "import torch; print('CUDA disponible:', torch.cuda.is_available())" 2>/dev/null; then
     print_status "✅ PyTorch CUDA fonctionnel"
 else
-    print_warning "⚠️  PyTorch CUDA non testé"
+    print_warning "⚠️  PyTorch CUDA non testé (PyTorch pas encore installé)"
 fi
 
-print_status "✅ Réparation CUDA terminée !"
+print_status "✅ Installation CUDA simple terminée !"
 echo ""
 print_status "Prochaines étapes :"
 echo "1. Redémarrez votre terminal ou exécutez : source ~/.bashrc"
-echo "2. Testez CUDA : nvcc --version"
+echo "2. Testez CUDA : nvcc --version (si installé)"
 echo "3. Relancez l'installation : ./install.sh"
 echo "" 

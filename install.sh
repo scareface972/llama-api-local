@@ -99,17 +99,16 @@ print_status "ÉTAPE 3: Configuration CUDA..."
 if command -v nvidia-smi &> /dev/null; then
     print_status "✅ GPU NVIDIA détecté, installation de CUDA..."
     
-    # Installation des dépendances manquantes pour CUDA
-    print_status "Installation des dépendances CUDA..."
+    # Installation des dépendances de base pour CUDA
+    print_status "Installation des dépendances de base..."
     sudo apt install -y \
-        libtinfo5 \
-        libncurses5 \
-        libncurses5-dev \
-        libncursesw5 \
-        libncursesw5-dev \
-        libtinfo-dev \
-        libncurses-dev
-    check_error "Échec de l'installation des dépendances CUDA"
+        build-essential \
+        gcc \
+        g++ \
+        make \
+        cmake \
+        pkg-config
+    check_error "Échec de l'installation des dépendances de base"
     
     # Nettoyage des packages cassés
     print_status "Nettoyage des packages cassés..."
@@ -132,11 +131,11 @@ if command -v nvidia-smi &> /dev/null; then
     check_error "Échec de la mise à jour des dépôts"
     
     # Installation sélective de CUDA (sans nsight-systems qui pose problème)
-    print_status "Installation de CUDA toolkit (sans nsight-systems)..."
-    sudo apt-get install -y cuda-toolkit-12-0 --no-install-recommends
+    print_status "Installation de CUDA toolkit (sans outils de développement)..."
+    sudo apt-get install -y cuda-runtime-12-0 cuda-libraries-12-0 --no-install-recommends
     if [ $? -ne 0 ]; then
-        print_warning "Installation complète échouée, tentative d'installation minimale..."
-        sudo apt-get install -y cuda-compiler-12-0 cuda-libraries-12-0 cuda-libraries-dev-12-0
+        print_warning "Installation de base échouée, tentative d'installation minimale..."
+        sudo apt-get install -y cuda-compiler-12-0 cuda-libraries-12-0
         check_error "Échec de l'installation minimale de CUDA"
     fi
     
