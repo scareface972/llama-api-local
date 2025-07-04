@@ -67,11 +67,16 @@ if [ $? -eq 0 ]; then
     print_status "✅ Compilation terminée avec succès !"
     
     # Vérification du binaire
-    if [ -f "main" ]; then
+    if [ -f "llama-server" ]; then
+        print_status "✅ Binaire llama-server créé"
+        print_status "Taille: $(du -h llama-server | cut -f1)"
+    elif [ -f "main" ]; then
         print_status "✅ Binaire main créé"
         print_status "Taille: $(du -h main | cut -f1)"
     else
-        print_error "❌ Binaire main non trouvé"
+        print_error "❌ Binaire llama-server ou main non trouvé"
+        print_status "Fichiers dans le répertoire build :"
+        ls -la
         exit 1
     fi
     

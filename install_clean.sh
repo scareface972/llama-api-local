@@ -919,7 +919,7 @@ else
 fi
 
 # Vérification de llama.cpp
-if [ -d "llama.cpp" ] && [ -f "llama.cpp/build/main" ]; then
+if [ -d "llama.cpp" ] && ([ -f "llama.cpp/build/llama-server" ] || [ -f "llama.cpp/build/main" ]); then
     print_status "✅ llama.cpp compilé"
 else
     print_error "❌ llama.cpp manquant ou non compilé"
