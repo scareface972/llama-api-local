@@ -1,86 +1,139 @@
 #!/bin/bash
 
-echo "📥 Téléchargement du modèle Llama.cpp optimisé"
+echo "📥 Téléchargement de modèle pour l'API Llama.cpp"
 echo "=============================================="
 
-# Configuration
-MODEL_NAME="llama-2-7b-chat.gguf"
-MODEL_URL="https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf"
-MODELS_DIR="models"
+# Couleurs pour l'affichage
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# Création du répertoire models s'il n'existe pas
-mkdir -p $MODELS_DIR
+# Fonction d'affichage avec couleur
+print_status() {
+    echo -e "${GREEN}[INFO]${NC} $1"
+}
 
-# Vérification si le modèle existe déjà
-if [ -f "$MODELS_DIR/$MODEL_NAME" ]; then
-    echo "✅ Le modèle existe déjà dans $MODELS_DIR/$MODEL_NAME"
-    echo "📊 Taille du fichier: $(du -h $MODELS_DIR/$MODEL_NAME | cut -f1)"
-    read -p "Voulez-vous le télécharger à nouveau ? (y/N): " -n 1 -r
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Vérification de l'utilisateur
+if [ "$EUID" -eq 0 ]; then
+    print_error "Ne pas exécuter ce script en tant que root"
+    print_status "Utilisez un utilisateur normal"
+    exit 1
+fi
+
+# Vérification du répertoire models
+if [ ! -d "models" ]; then
+    print_status "Création du répertoire models..."
+    mkdir -p models
+fi
+
+cd models
+
+# Sélection du modèle
+echo ""
+echo "🎯 Sélectionnez un modèle à télécharger :"
+echo "1. Llama-2-7B-Chat (4.37 GB) - Recommandé pour débuter"
+echo "2. Llama-2-13B-Chat (7.87 GB) - Plus performant, plus lent"
+echo "3. Llama-2-7B (4.37 GB) - Modèle de base (sans chat)"
+echo "4. CodeLlama-7B-Instruct (4.37 GB) - Spécialisé code"
+echo "5. Mistral-7B-Instruct (4.37 GB) - Très performant"
+echo "6. Téléchargement personnalisé"
+echo ""
+
+read -p "Votre choix (1-6): " choice
+
+case $choice in
+    1)
+        MODEL_NAME="llama-2-7b-chat.gguf"
+        MODEL_URL="https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF/resolve/main/llama-2-7b-chat.Q4_K_M.gguf"
+        ;;
+    2)
+        MODEL_NAME="llama-2-13b-chat.gguf"
+        MODEL_URL="https://huggingface.co/TheBloke/Llama-2-13B-Chat-GGUF/resolve/main/llama-2-13b-chat.Q4_K_M.gguf"
+        ;;
+    3)
+        MODEL_NAME="llama-2-7b.gguf"
+        MODEL_URL="https://huggingface.co/TheBloke/Llama-2-7B-GGUF/resolve/main/llama-2-7b.Q4_K_M.gguf"
+        ;;
+    4)
+        MODEL_NAME="codellama-7b-instruct.gguf"
+        MODEL_URL="https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/codellama-7b-instruct.Q4_K_M.gguf"
+        ;;
+    5)
+        MODEL_NAME="mistral-7b-instruct.gguf"
+        MODEL_URL="https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf"
+        ;;
+    6)
+        echo ""
+        read -p "URL du modèle GGUF: " MODEL_URL
+        read -p "Nom du fichier: " MODEL_NAME
+        ;;
+    *)
+        print_error "Choix invalide"
+        exit 1
+        ;;
+esac
+
+# Vérification de l'espace disque
+print_status "Vérification de l'espace disque..."
+FREE_SPACE=$(df . | awk 'NR==2 {print $4}')
+FREE_SPACE_GB=$((FREE_SPACE / 1024 / 1024))
+
+if [ $FREE_SPACE_GB -lt 10 ]; then
+    print_warning "⚠️  Espace disque faible: ${FREE_SPACE_GB} GB disponible"
+    print_warning "Il est recommandé d'avoir au moins 10 GB d'espace libre"
+    read -p "Continuer quand même ? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "🚀 Utilisation du modèle existant"
+        print_status "Téléchargement annulé"
         exit 0
     fi
+else
+    print_status "✅ Espace disque suffisant: ${FREE_SPACE_GB} GB disponible"
 fi
 
-echo "🌐 Téléchargement depuis Hugging Face..."
-echo "📦 URL: $MODEL_URL"
-echo "💾 Destination: $MODELS_DIR/$MODEL_NAME"
+# Téléchargement du modèle
+print_status "Téléchargement de $MODEL_NAME..."
+print_status "URL: $MODEL_URL"
 echo ""
 
-# Téléchargement avec wget avec barre de progression
-if command -v wget &> /dev/null; then
-    echo "📥 Utilisation de wget..."
-    wget --progress=bar:force:noscroll -O "$MODELS_DIR/$MODEL_NAME" "$MODEL_URL"
-elif command -v curl &> /dev/null; then
-    echo "📥 Utilisation de curl..."
-    curl -L -o "$MODELS_DIR/$MODEL_NAME" "$MODEL_URL"
-else
-    echo "❌ Erreur: wget ou curl non trouvé"
-    exit 1
-fi
+# Utilisation de wget avec barre de progression
+wget --progress=bar:force:noscroll -O "$MODEL_NAME" "$MODEL_URL"
 
-# Vérification du téléchargement
-if [ -f "$MODELS_DIR/$MODEL_NAME" ]; then
-    echo ""
-    echo "✅ Téléchargement terminé avec succès !"
-    echo "📊 Taille du fichier: $(du -h $MODELS_DIR/$MODEL_NAME | cut -f1)"
-    echo "🔍 Vérification de l'intégrité..."
+if [ $? -eq 0 ]; then
+    print_status "✅ Téléchargement terminé avec succès !"
     
-    # Vérification basique du fichier
-    if file "$MODELS_DIR/$MODEL_NAME" | grep -q "data"; then
-        echo "✅ Fichier valide détecté"
-    else
-        echo "⚠️  Le fichier ne semble pas être un modèle valide"
+    # Affichage des informations du fichier
+    FILE_SIZE=$(du -h "$MODEL_NAME" | cut -f1)
+    print_status "Taille du fichier: $FILE_SIZE"
+    
+    # Mise à jour du fichier de configuration
+    cd ..
+    if [ -f "config.py" ]; then
+        print_status "Mise à jour de la configuration..."
+        sed -i "s/DEFAULT_MODEL = \".*\"/DEFAULT_MODEL = \"$MODEL_NAME\"/" config.py
+        print_status "✅ Configuration mise à jour"
     fi
     
     echo ""
-    echo "🚀 Le modèle est prêt à être utilisé !"
-    echo "📋 Prochaines étapes :"
-    echo "1. Exécutez : ./start_server.sh"
-    echo "2. Ouvrez votre navigateur sur : http://localhost:8000"
+    print_status "🎉 Modèle prêt à utiliser !"
     echo ""
-    echo "💡 Informations sur le modèle :"
-    echo "   • Modèle: Llama-2-7B-Chat"
-    echo "   • Quantisation: Q4_K_M (optimisé pour votre configuration)"
-    echo "   • Taille: ~4GB (idéal pour 8GB RAM + 4GB VRAM)"
-    echo "   • Performance: Équilibrée entre vitesse et qualité"
+    print_status "Prochaines étapes :"
+    echo "1. Démarrer le serveur : ./start_server.sh"
+    echo "2. Ou démarrer le service : sudo systemctl start llama-api"
+    echo "3. Accéder à l'interface : http://localhost:8000"
+    echo ""
     
 else
-    echo "❌ Erreur lors du téléchargement"
-    echo "🔧 Solutions possibles :"
-    echo "   • Vérifiez votre connexion internet"
-    echo "   • Assurez-vous d'avoir suffisamment d'espace disque"
-    echo "   • Essayez de télécharger manuellement depuis :"
-    echo "     $MODEL_URL"
+    print_error "❌ Échec du téléchargement"
     exit 1
-fi
-
-echo ""
-echo "🎯 Optimisations appliquées pour votre configuration :"
-echo "   • CPU i5: Utilisation optimisée des cœurs"
-echo "   • GPU GTX 950M: 20 couches GPU activées"
-echo "   • RAM 8GB: Gestion intelligente de la mémoire"
-echo "   • VRAM 4GB: Quantisation Q4_K_M optimale"
-echo ""
-echo "✨ Votre IA locale est prête !" 
+fi 
