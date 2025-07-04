@@ -99,23 +99,57 @@ print_status "ÉTAPE 3: Configuration CUDA..."
 if command -v nvidia-smi &> /dev/null; then
     print_status "✅ GPU NVIDIA détecté, installation de CUDA..."
     
+    # Installation des dépendances manquantes pour CUDA
+    print_status "Installation des dépendances CUDA..."
+    sudo apt install -y \
+        libtinfo5 \
+        libncurses5 \
+        libncurses5-dev \
+        libncursesw5 \
+        libncursesw5-dev \
+        libtinfo-dev \
+        libncurses-dev
+    check_error "Échec de l'installation des dépendances CUDA"
+    
+    # Nettoyage des packages cassés
+    print_status "Nettoyage des packages cassés..."
+    sudo apt autoremove -y
+    sudo apt autoclean
+    sudo apt --fix-broken install -y
+    check_error "Échec de la réparation des packages"
+    
     # Installation de CUDA Toolkit
+    print_status "Téléchargement de CUDA keyring..."
     wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb
     check_error "Échec du téléchargement de CUDA keyring"
     
+    print_status "Installation de CUDA keyring..."
     sudo dpkg -i cuda-keyring_1.0-1_all.deb
     check_error "Échec de l'installation de CUDA keyring"
     
+    print_status "Mise à jour des dépôts..."
     sudo apt-get update
-    sudo apt-get -y install cuda-toolkit-12-0
-    check_error "Échec de l'installation de CUDA toolkit"
+    check_error "Échec de la mise à jour des dépôts"
+    
+    # Installation sélective de CUDA (sans nsight-systems qui pose problème)
+    print_status "Installation de CUDA toolkit (sans nsight-systems)..."
+    sudo apt-get install -y cuda-toolkit-12-0 --no-install-recommends
+    if [ $? -ne 0 ]; then
+        print_warning "Installation complète échouée, tentative d'installation minimale..."
+        sudo apt-get install -y cuda-compiler-12-0 cuda-libraries-12-0 cuda-libraries-dev-12-0
+        check_error "Échec de l'installation minimale de CUDA"
+    fi
     
     # Configuration des variables d'environnement CUDA
-    echo 'export PATH=/usr/local/cuda-12.0/bin:$PATH' >> ~/.bashrc
-    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.0/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
-    source ~/.bashrc
-    
-    print_status "✅ CUDA installé et configuré"
+    print_status "Configuration des variables d'environnement CUDA..."
+    if [ -d "/usr/local/cuda-12.0" ]; then
+        echo 'export PATH=/usr/local/cuda-12.0/bin:$PATH' >> ~/.bashrc
+        echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.0/lib64:$LD_LIBRARY_PATH' >> ~/.bashrc
+        source ~/.bashrc
+        print_status "✅ CUDA installé et configuré"
+    else
+        print_warning "⚠️  CUDA installé mais répertoire non trouvé, configuration manuelle nécessaire"
+    fi
 else
     print_warning "⚠️  GPU NVIDIA non détecté, installation sans CUDA"
 fi
