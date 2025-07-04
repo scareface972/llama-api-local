@@ -11,13 +11,13 @@ class Config:
         "ram_gb": 8,
         "vram_gb": 4,
         "batch_size": 512,  # Optimisé pour la mémoire disponible
-        "context_size": 2048,  # Taille de contexte adaptée
+        "context_size": 8192,  # Augmenté pour utiliser plus de capacité du modèle
     }
     
     # Configuration llama.cpp
     LLAMA_CONFIG = {
         "model_path": "models/llama-2-7b-chat.gguf",
-        "n_ctx": 2048,
+        "n_ctx": 8192,  # Augmenté pour utiliser plus de capacité
         "n_batch": 512,
         "n_gpu_layers": 20,
         "n_threads": 4,
@@ -67,37 +67,8 @@ class Config:
         "mtest": False,
         "verbose_prompt": False,
         "m_eval": 0,
-        "ctx_size": 2048,
+        "ctx_size": 8192,  # Augmenté pour utiliser plus de capacité
         "repeat_penalty": 1.1,
-        "repeat_last_n": 64,
-        "penalize_nl": True,
-        "temp": 0.8,
-        "top_k": 40,
-        "top_p": 0.9,
-        "tfs_z": 1.0,
-        "typical_p": 1.0,
-        "mirostat": 0,
-        "mirostat_tau": 5.0,
-        "mirostat_eta": 0.1,
-        "grammar": "",
-        "grammar_penalty": 1.0,
-        "antiprompt": [],
-        "logit_bias": {},
-        "stop": ["</s>", "Human:", "Assistant:"],
-        "stream": True,
-        "seed": -1,
-        "ignore_eos": False,
-        "no_display_prompt": False,
-        "interactive": False,
-        "interactive_first": False,
-        "multiline_input": False,
-        "simple_io": False,
-        "color": False,
-        "mlock": False,
-        "no_mmap": False,
-        "mtest": False,
-        "verbose_prompt": False,
-        "m_eval": 0,
     }
     
     # Configuration API
@@ -142,6 +113,25 @@ class Config:
         "max_tokens_per_conversation": 8192,
         "cleanup_interval": 3600,  # 1 heure
     }
+    
+    # Configuration du modèle
+    DEFAULT_MODEL = "llama-2-7b-chat.gguf"
+    MODELS_DIR = os.path.dirname(os.path.abspath(__file__))
+    MODEL_PATH = os.path.join(MODELS_DIR, DEFAULT_MODEL)
+
+    # Configuration CUDA (désactivée par défaut)
+    USE_CUDA = False
+    CUDA_LAYERS = 0
+
+    # Configuration de la génération
+    MAX_TOKENS = 2048
+    TEMPERATURE = 0.7
+    TOP_P = 0.9
+    TOP_K = 40
+    REPEAT_PENALTY = 1.1
+
+    # Configuration du contexte (augmenté pour utiliser plus de capacité)
+    CONTEXT_SIZE = 8192  # 8K tokens au lieu de 4K
     
     @classmethod
     def get_llama_args(cls) -> Dict[str, Any]:
