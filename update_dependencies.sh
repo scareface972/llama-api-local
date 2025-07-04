@@ -145,8 +145,24 @@ if [ -d "venv" ]; then
     
     # Installation de llama-cpp-python avec support CUDA
     print_status "Installation de llama-cpp-python avec support CUDA..."
-    python -m pip install llama-cpp-python --force-reinstall --index-url https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu118
-    check_error "Échec de l'installation de llama-cpp-python"
+    
+    # Tentative d'installation depuis le dépôt personnalisé
+    if python -m pip install llama-cpp-python --force-reinstall --index-url https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu118 2>/dev/null; then
+        print_status "✅ llama-cpp-python installé depuis le dépôt personnalisé"
+    else
+        print_warning "Échec de l'installation depuis le dépôt personnalisé"
+        print_status "Tentative d'installation depuis PyPI avec compilation CUDA..."
+        
+        # Installation depuis PyPI avec compilation CUDA
+        CMAKE_ARGS="-DLLAMA_CUBLAS=on" python -m pip install llama-cpp-python --force-reinstall --no-cache-dir
+        if [ $? -eq 0 ]; then
+            print_status "✅ llama-cpp-python installé depuis PyPI avec compilation CUDA"
+        else
+            print_warning "Échec de la compilation CUDA, installation sans CUDA..."
+            python -m pip install llama-cpp-python --force-reinstall --no-cache-dir
+            check_error "Échec de l'installation de llama-cpp-python"
+        fi
+    fi
     
     print_status "✅ Dépendances Python mises à jour"
 else
