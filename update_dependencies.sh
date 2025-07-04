@@ -81,28 +81,69 @@ check_error "Échec de l'installation des dépendances système"
 print_status "Vérification de l'environnement virtuel..."
 if [ -d "venv" ]; then
     print_status "Environnement virtuel trouvé, mise à jour des dépendances Python..."
+    
+    # Activation explicite de l'environnement virtuel
     source venv/bin/activate
     
-    # Mise à jour de pip
-    pip install --upgrade pip
+    # Vérification que l'environnement est activé
+    if [ -z "$VIRTUAL_ENV" ]; then
+        print_error "L'environnement virtuel n'est pas activé"
+        print_error "Tentative de réactivation..."
+        export VIRTUAL_ENV="$(pwd)/venv"
+        export PATH="$VIRTUAL_ENV/bin:$PATH"
+        unset PYTHONHOME
+    fi
+    
+    print_status "Environnement virtuel activé : $VIRTUAL_ENV"
+    
+    # Vérification du Python utilisé
+    PYTHON_PATH=$(which python)
+    print_status "Python utilisé : $PYTHON_PATH"
+    
+    if [[ "$PYTHON_PATH" != *"venv"* ]]; then
+        print_error "Python système utilisé au lieu de l'environnement virtuel"
+        print_error "Suppression et recréation de l'environnement virtuel..."
+        deactivate 2>/dev/null || true
+        rm -rf venv
+        python3 -m venv venv
+        source venv/bin/activate
+        check_error "Échec de la recréation de l'environnement virtuel"
+    fi
+    
+    # Mise à jour de pip dans l'environnement virtuel
+    print_status "Mise à jour de pip dans l'environnement virtuel..."
+    python -m pip install --upgrade pip
     check_error "Échec de la mise à jour de pip"
     
     # Réinstallation des dépendances Python
-    pip install -r requirements.txt --force-reinstall
+    print_status "Installation des dépendances Python..."
+    python -m pip install -r requirements.txt --force-reinstall
     check_error "Échec de la réinstallation des dépendances Python"
     
     # Installation de PyTorch avec support CUDA
-    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --force-reinstall
+    print_status "Installation de PyTorch avec support CUDA..."
+    python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --force-reinstall
     check_error "Échec de l'installation de PyTorch"
     
     # Installation de llama-cpp-python avec support CUDA
-    pip install llama-cpp-python --force-reinstall --index-url https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu118
+    print_status "Installation de llama-cpp-python avec support CUDA..."
+    python -m pip install llama-cpp-python --force-reinstall --index-url https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu118
     check_error "Échec de l'installation de llama-cpp-python"
     
     print_status "✅ Dépendances Python mises à jour"
 else
     print_warning "Environnement virtuel non trouvé"
-    print_status "Exécutez ./install.sh pour une installation complète"
+    print_status "Création d'un nouvel environnement virtuel..."
+    python3 -m venv venv
+    source venv/bin/activate
+    check_error "Échec de la création de l'environnement virtuel"
+    
+    print_status "Installation des dépendances dans le nouvel environnement..."
+    python -m pip install --upgrade pip
+    python -m pip install -r requirements.txt
+    python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+    python -m pip install llama-cpp-python --index-url https://jllllll.github.io/llama-cpp-python-cuBLAS-wheels/AVX2/cu118
+    check_error "Échec de l'installation des dépendances"
 fi
 
 # Vérification de llama.cpp
