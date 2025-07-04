@@ -923,12 +923,15 @@ if [ -d "llama.cpp" ]; then
     cd llama.cpp
     if [ -d "build" ]; then
         cd build
-        # Recherche de binaires possibles
+        # Recherche de binaires possibles dans bin/ en premier
         binaries=("llama-server" "main" "llama" "server" "llama-cpp" "llama-cpp-server")
         found_binary=""
         
         for binary in "${binaries[@]}"; do
-            if [ -f "$binary" ] && [ -x "$binary" ]; then
+            if [ -f "bin/$binary" ] && [ -x "bin/$binary" ]; then
+                found_binary="bin/$binary"
+                break
+            elif [ -f "$binary" ] && [ -x "$binary" ]; then
                 found_binary="$binary"
                 break
             fi

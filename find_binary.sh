@@ -56,7 +56,14 @@ binaries=(
 found_binary=""
 
 for binary in "${binaries[@]}"; do
-    if [ -f "$binary" ] && [ -x "$binary" ]; then
+    # Recherche dans le répertoire bin en premier
+    if [ -f "bin/$binary" ] && [ -x "bin/$binary" ]; then
+        found_binary="bin/$binary"
+        print_status "✅ Binaire trouvé : bin/$binary"
+        echo "   Taille: $(du -h "bin/$binary" | cut -f1)"
+        echo "   Permissions: $(ls -la "bin/$binary" | awk '{print $1}')"
+        break
+    elif [ -f "$binary" ] && [ -x "$binary" ]; then
         found_binary="$binary"
         print_status "✅ Binaire trouvé : $binary"
         echo "   Taille: $(du -h "$binary" | cut -f1)"
@@ -69,6 +76,9 @@ if [ -z "$found_binary" ]; then
     print_error "❌ Aucun binaire exécutable trouvé"
     print_status "Fichiers dans le répertoire build :"
     ls -la
+    
+    print_status "Fichiers dans le répertoire bin :"
+    ls -la bin/ 2>/dev/null || echo "Répertoire bin non trouvé"
     
     print_status "Recherche de tous les fichiers exécutables :"
     find . -type f -executable -exec ls -la {} \;
