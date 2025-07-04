@@ -919,8 +919,34 @@ else
 fi
 
 # Vérification de llama.cpp
-if [ -d "llama.cpp" ] && ([ -f "llama.cpp/build/llama-server" ] || [ -f "llama.cpp/build/main" ]); then
-    print_status "✅ llama.cpp compilé"
+if [ -d "llama.cpp" ]; then
+    cd llama.cpp
+    if [ -d "build" ]; then
+        cd build
+        # Recherche de binaires possibles
+        binaries=("llama-server" "main" "llama" "server" "llama-cpp" "llama-cpp-server")
+        found_binary=""
+        
+        for binary in "${binaries[@]}"; do
+            if [ -f "$binary" ] && [ -x "$binary" ]; then
+                found_binary="$binary"
+                break
+            fi
+        done
+        
+        cd ../..
+        
+        if [ -n "$found_binary" ]; then
+            print_status "✅ llama.cpp compilé (binaire: $found_binary)"
+        else
+            print_error "❌ llama.cpp manquant ou non compilé"
+            exit 1
+        fi
+    else
+        cd ..
+        print_error "❌ llama.cpp manquant ou non compilé"
+        exit 1
+    fi
 else
     print_error "❌ llama.cpp manquant ou non compilé"
     exit 1

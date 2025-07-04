@@ -67,16 +67,28 @@ if [ $? -eq 0 ]; then
     print_status "✅ Compilation terminée avec succès !"
     
     # Vérification du binaire
-    if [ -f "llama-server" ]; then
-        print_status "✅ Binaire llama-server créé"
-        print_status "Taille: $(du -h llama-server | cut -f1)"
-    elif [ -f "main" ]; then
-        print_status "✅ Binaire main créé"
-        print_status "Taille: $(du -h main | cut -f1)"
-    else
-        print_error "❌ Binaire llama-server ou main non trouvé"
+    print_status "Recherche du binaire compilé..."
+
+    # Liste des noms possibles (par ordre de priorité)
+    binaries=("llama-server" "main" "llama" "server" "llama-cpp" "llama-cpp-server")
+
+    found_binary=""
+
+    for binary in "${binaries[@]}"; do
+        if [ -f "$binary" ] && [ -x "$binary" ]; then
+            found_binary="$binary"
+            print_status "✅ Binaire trouvé : $binary"
+            print_status "Taille: $(du -h "$binary" | cut -f1)"
+            break
+        fi
+    done
+
+    if [ -z "$found_binary" ]; then
+        print_error "❌ Aucun binaire exécutable trouvé"
         print_status "Fichiers dans le répertoire build :"
         ls -la
+        print_status "Recherche de tous les fichiers exécutables :"
+        find . -type f -executable -exec ls -la {} \;
         exit 1
     fi
     
