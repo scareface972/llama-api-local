@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "🔨 Compilation rapide de llama.cpp avec CMake"
-echo "============================================"
+echo "🔨 Compilation simple de llama.cpp"
+echo "================================="
 
 # Couleurs pour l'affichage
 RED='\033[0;31m'
@@ -50,18 +50,13 @@ print_status "Création du répertoire build..."
 mkdir -p build
 cd build
 
-# Configuration CMake avec optimisations
-print_status "Configuration CMake avec optimisations..."
-cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON -DGGML_NATIVE=ON -DLLAMA_BUILD_SERVER=ON -DLLAMA_METAL=OFF -DLLAMA_CUBLAS=OFF
+# Configuration CMake simple (sans avertissements)
+print_status "Configuration CMake simple..."
+cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON
 
 if [ $? -ne 0 ]; then
     print_error "Échec de la configuration CMake"
-    print_status "Tentative de configuration minimale..."
-    cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON
-    if [ $? -ne 0 ]; then
-        print_error "Échec de la configuration CMake minimale"
-        exit 1
-    fi
+    exit 1
 fi
 
 # Compilation

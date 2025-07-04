@@ -179,7 +179,7 @@ mkdir -p build
 cd build
 
 # Configuration CMake avec optimisations
-cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON -DLLAMA_NATIVE=ON -DLLAMA_BUILD_SERVER=ON -DLLAMA_METAL=OFF -DLLAMA_CUBLAS=OFF
+cmake .. -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON -DGGML_NATIVE=ON -DLLAMA_BUILD_SERVER=ON -DLLAMA_METAL=OFF -DLLAMA_CUBLAS=OFF
 check_error "Échec de la configuration CMake"
 
 # Compilation

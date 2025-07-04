@@ -187,3 +187,62 @@ Pour commencer, exécutez simplement :
 ```bash
 ./install_clean.sh
 ```
+
+## 🔧 **Correction des Options CMake**
+
+### **Problème identifié :**
+- Les variables CMake utilisées étaient **obsolètes** ou **incorrectes**
+- `LLAMA_AVX`, `LLAMA_AVX2`, `LLAMA_F16C`, `LLAMA_FMA` ne sont plus utilisées
+- Il faut utiliser les **nouvelles options** de la version récente de llama.cpp
+
+### **Corrections apportées :**
+
+1. **Options CMake corrigées** :
+   ```bash
+   # Anciennes (incorrectes)
+   -DLLAMA_AVX=ON -DLLAMA_AVX2=ON -DLLAMA_F16C=ON -DLLAMA_FMA=ON
+   
+   # Nouvelles (correctes)
+   -DLLAMA_BLAS=ON -DLLAMA_OPENBLAS=ON -DLLAMA_NATIVE=ON -DLLAMA_BUILD_SERVER=ON -DLLAMA_METAL=OFF -DLLAMA_CUBLAS=OFF
+   ```
+
+2. **Scripts mis à jour** :
+   - ✅ `install_clean.sh` - Installation complète
+   - ✅ `compile_llama.sh` - Compilation rapide
+   - ✅ `check_cmake_options.sh` - Diagnostic des options
+
+### **Nouvelles options expliquées :**
+- `LLAMA_BLAS=ON` - Support BLAS pour accélération
+- `LLAMA_OPENBLAS=ON` - Utilisation d'OpenBLAS
+- `LLAMA_NATIVE=ON` - Optimisations natives pour votre CPU
+- `LLAMA_BUILD_SERVER=ON` - Compilation du serveur
+- `LLAMA_METAL=OFF` - Désactive Metal (macOS)
+- `LLAMA_CUBLAS=OFF` - Désactive CUDA (CPU uniquement)
+
+## 🚀 **Prochaines Étapes**
+
+Maintenant que les options CMake sont corrigées, vous pouvez :
+
+### **Option 1 : Vérifier les options disponibles**
+```bash
+./check_cmake_options.sh
+```
+
+### **Option 2 : Relancer l'installation**
+```bash
+./install_clean.sh
+```
+
+### **Option 3 : Compiler seulement llama.cpp**
+```bash
+./compile_llama.sh
+```
+
+## ✅ **Avantages de la Correction**
+
+- ✅ **Options CMake valides** - Plus d'avertissements
+- ✅ **Compilation optimisée** - Utilisation des bonnes optimisations
+- ✅ **Compatibilité** - Fonctionne avec la version récente de llama.cpp
+- ✅ **Diagnostic** - Script pour vérifier les options disponibles
+
+Voulez-vous maintenant relancer l'installation avec les bonnes options CMake ?
