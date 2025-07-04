@@ -526,6 +526,13 @@
                             <div class="info-label">Temps ms</div>
                         </div>
                     </div>
+                    
+                    <!-- Informations détaillées -->
+                    <div style="margin-top: 15px; padding: 10px; background: #f7fafc; border-radius: 8px; font-size: 0.8rem;">
+                        <div style="margin-bottom: 5px;"><strong>CPU:</strong> <span id="cpuDetails">--</span></div>
+                        <div style="margin-bottom: 5px;"><strong>RAM:</strong> <span id="ramDetails">--</span></div>
+                        <div><strong>Disque:</strong> <span id="diskDetails">--</span></div>
+                    </div>
                 </div>
 
                 <div class="sidebar-card">
@@ -636,12 +643,40 @@
 
         function updateHardwareInfo(data) {
             if (data.hardware_info) {
-                document.getElementById('cpuUsage').textContent = 
-                    Math.round(data.hardware_info.cpu_percent) + '%';
-                document.getElementById('ramUsage').textContent = 
-                    Math.round(data.memory_usage.ram_percent) + '%';
+                // Affichage CPU
+                const cpuPercent = data.hardware_info.cpu_percent || 0;
+                document.getElementById('cpuUsage').textContent = Math.round(cpuPercent) + '%';
+                
+                // Affichage RAM
+                const ramPercent = data.memory_usage ? data.memory_usage.ram_percent : 0;
+                document.getElementById('ramUsage').textContent = Math.round(ramPercent) + '%';
+                
+                // Statut du modèle
                 document.getElementById('modelStatus').textContent = 
                     data.model_loaded ? 'Chargé' : 'Erreur';
+                
+                // Détails CPU
+                const cpuCount = data.hardware_info.cpu_count || 0;
+                document.getElementById('cpuDetails').textContent = 
+                    `${cpuCount} cœurs, ${Math.round(cpuPercent)}% utilisé`;
+                
+                // Détails RAM
+                if (data.memory_usage) {
+                    const ramUsed = data.memory_usage.ram_used_gb || 0;
+                    const ramTotal = data.memory_usage.ram_total_gb || 0;
+                    document.getElementById('ramDetails').textContent = 
+                        `${ramUsed}GB / ${ramTotal}GB (${Math.round(ramPercent)}%)`;
+                }
+                
+                // Détails disque
+                const diskPercent = data.hardware_info.disk_usage || 0;
+                document.getElementById('diskDetails').textContent = 
+                    `${Math.round(diskPercent)}% utilisé`;
+                
+                // Debug: afficher les données dans la console
+                console.log('Données hardware:', data);
+            } else {
+                console.log('Aucune donnée hardware reçue');
             }
         }
 

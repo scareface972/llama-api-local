@@ -351,6 +351,19 @@ async def list_models():
     
     return {"models": models}
 
+@app.get("/debug/hardware")
+async def debug_hardware():
+    """Endpoint de debug pour vérifier les informations matérielles"""
+    return {
+        "hardware_info": get_hardware_info(),
+        "memory_usage": {
+            "ram_used_gb": round(psutil.virtual_memory().used / (1024**3), 2),
+            "ram_total_gb": round(psutil.virtual_memory().total / (1024**3), 2),
+            "ram_percent": psutil.virtual_memory().percent
+        },
+        "model_loaded": llama_model is not None
+    }
+
 if __name__ == "__main__":
     config = Config.get_api_config()
     uvicorn.run(
