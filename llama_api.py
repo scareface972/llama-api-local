@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Any, AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -213,7 +213,7 @@ def get_hardware_info() -> Dict[str, Any]:
     }
 
 @app.get("/", response_class=HTMLResponse)
-async def root(request):
+async def root(request: Request):
     """Page d'accueil avec interface web"""
     return templates.TemplateResponse("index.html", {"request": request})
 
